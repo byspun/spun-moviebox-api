@@ -55,11 +55,12 @@ const USER_AGENT =
 // ─── Paths ────────────────────────────────────────────────────────────────────
 
 export const PATHS = {
-  search:     '/wefeed-mobile-bff/subject-api/search',
-  get:        '/wefeed-mobile-bff/subject-api/get',
-  seasonInfo: '/wefeed-mobile-bff/subject-api/season-info',
-  resource:   '/wefeed-mobile-bff/subject-api/resource',
-  captions:   '/wefeed-mobile-bff/subject-api/get-ext-captions',
+  search:             '/wefeed-mobile-bff/subject-api/search',
+  get:                '/wefeed-mobile-bff/subject-api/get',
+  seasonInfo:         '/wefeed-mobile-bff/subject-api/season-info',
+  resource:           '/wefeed-mobile-bff/subject-api/resource',
+  resourcePositionV2: '/wefeed-mobile-bff/subject-api/resource-position/v2',
+  captions:           '/wefeed-mobile-bff/subject-api/get-ext-captions',
   // Lightweight bootstrap target — any signed GET works, this is the
   // smallest/cheapest one. Not used for actual homepage data (that's H5).
   tabOperating: '/wefeed-mobile-bff/tab-operating',

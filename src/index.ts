@@ -120,7 +120,45 @@ async function fetchResourcePack(env: Env, subjectId: string): Promise<MBResourc
 
   if (!allItems.length) return null;
 
-  return allItems.sort((a, b) => b.resolution - a.resolution);
+  // ─── 2026-10-27 fix ────────────────────────────────────────────────────────
+  // Unmask the decoy. Since some time in 2026, MovieBox's /resource endpoint
+  // returns a ~0.8 MB, 23-second decoy clip (hosted at macdn.aoneroom.com)
+  // for every unauthenticated client — the resourceLink is a trap. The real
+  // app plays the decoy, hits end-of-stream, then calls resource-position/v2
+  // with failUrl=<decoy>&failCode=404 to receive the real signed CDN link
+  // (bcdn.hakunaymatata.com). We skip the playback and go straight to the
+  // unmask: one resource-position/v2 call per resourceId, in parallel.
+  //
+  // Confirmed live: three titles × every resolution each return the real file
+  // size (hundreds of MB to multi-GB — Inception 1080p is 2.3 GB) via a Range
+  // probe. Without this step the host pool still returns 200/code:0 and the
+  // existing bcdn.hakunaymatata.com proxyMediaUrl path never fires because
+  // every resourceLink points at macdn.aoneroom.com instead.
+  const unmasked = await Promise.all(
+    allItems.map(async (item): Promise<MBResourceItem | null> => {
+      const data = await fetchWithHostPool<MBResourceData>(
+        env, PATHS.resourcePositionV2, 'GET',
+        {
+          subjectId,
+          resourceId: item.resourceId,
+          failUrl:    item.resourceLink,
+          failCode:   '404',
+          resourceNum:'0',
+          isVip:      'true',
+        }
+      );
+      const real = data?.list?.[0];
+      if (!real?.resourceLink) return null;
+      const next: MBResourceItem = { ...item, resourceLink: real.resourceLink };
+      if (real.size !== undefined) next.size = real.size;
+      return next;
+    })
+  );
+
+  const realItems: MBResourceItem[] = unmasked.filter((item): item is MBResourceItem => item !== null);
+  if (!realItems.length) return null;
+
+  return realItems.sort((a, b) => b.resolution - a.resolution);
 }
 
 // ─── Shared: map a resource item to a stream/download object ─────────────────
